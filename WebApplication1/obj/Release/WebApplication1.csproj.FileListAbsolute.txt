@@ -1,0 +1,7 @@
+C:\work\Apps\Thumbnailer-net\WebApplication1\bin\WebApplication1.dll
+C:\work\Apps\Thumbnailer-net\WebApplication1\bin\WebApplication1.pdb
+C:\work\Apps\Thumbnailer-net\WebApplication1\bin\Thumbnailer.dll
+C:\work\Apps\Thumbnailer-net\WebApplication1\bin\Thumbnailer.pdb
+C:\work\Apps\Thumbnailer-net\WebApplication1\obj\Release\ResolveAssemblyReference.cache
+C:\work\Apps\Thumbnailer-net\WebApplication1\obj\Release\WebApplication1.dll
+C:\work\Apps\Thumbnailer-net\WebApplication1\obj\Release\WebApplication1.pdb

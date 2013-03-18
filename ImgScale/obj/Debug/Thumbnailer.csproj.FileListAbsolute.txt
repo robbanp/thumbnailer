@@ -1,0 +1,16 @@
+C:\work\Apps\Export of ImgScale\ImgScale\bin\Debug\Thumbnailer.dll
+C:\work\Apps\Export of ImgScale\ImgScale\bin\Debug\Thumbnailer.pdb
+C:\work\Apps\Export of ImgScale\ImgScale\bin\Debug\Interop.SHDocVw.dll
+C:\work\Apps\Export of ImgScale\ImgScale\obj\Debug\ResolveAssemblyReference.cache
+C:\work\Apps\Export of ImgScale\ImgScale\obj\Debug\Interop.SHDocVw.dll
+C:\work\Apps\Export of ImgScale\ImgScale\obj\Debug\Thumbnailer.csproj.ResolveComReference.cache
+C:\work\Apps\Export of ImgScale\ImgScale\obj\Debug\Thumbnailer.dll
+C:\work\Apps\Export of ImgScale\ImgScale\obj\Debug\Thumbnailer.pdb
+C:\work\Apps\Thumbnailer-net\ImgScale\bin\Debug\Thumbnailer.dll
+C:\work\Apps\Thumbnailer-net\ImgScale\bin\Debug\Thumbnailer.pdb
+C:\work\Apps\Thumbnailer-net\ImgScale\bin\Debug\Interop.SHDocVw.dll
+C:\work\Apps\Thumbnailer-net\ImgScale\obj\Debug\ResolveAssemblyReference.cache
+C:\work\Apps\Thumbnailer-net\ImgScale\obj\Debug\Interop.SHDocVw.dll
+C:\work\Apps\Thumbnailer-net\ImgScale\obj\Debug\Thumbnailer.csproj.ResolveComReference.cache
+C:\work\Apps\Thumbnailer-net\ImgScale\obj\Debug\Thumbnailer.dll
+C:\work\Apps\Thumbnailer-net\ImgScale\obj\Debug\Thumbnailer.pdb

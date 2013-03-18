@@ -1,0 +1,1 @@
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="getimage.aspx.cs" Inherits="WebApplication1.getimage" %>
