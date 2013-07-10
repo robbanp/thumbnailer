@@ -9,7 +9,7 @@ using System.Web;
 
 
 /*
- Copyright (c) 2011 Robert Pohl, robert@sugarcubesolutions.com
+ Copyright (c) 2013 Robert Pohl, robert@sugarcubesolutions.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,28 +38,35 @@ namespace Thumbnailer
     public class ImageScale
     {
         public bool ConstrainPorportions = true;
+
         private int _height = -1;
         private int _width = -1;
-        private int _cropX = -1;
-        private int _cropY = -1;
-        private Bitmap mySource;
-        private Rectangle? cropRectangle = null;
-        private ImageFormat imageFormat = ImageFormat.Png;
+        private readonly Bitmap _mySource;
+        private Rectangle? _cropRectangle = null;
+        private ImageFormat _imageFormat = ImageFormat.Png;
+        public string LastError { get; set; } 
+
+        private void PrepareBitmap(string inFile)
+        {
+            this._height = this._mySource.Height;
+            this._width = this._mySource.Width;
+            this.CropY = this._height;
+            this.CropX = this._width;
+            this._imageFormat = ParseImageFormat(Path.GetExtension(inFile));
+        }
 
         /// <summary>
         /// Open a local file
         /// </summary>
-        /// <param name="InFile">file with path</param>
-        public ImageScale(string InFile)
+        /// <param name="inFile">file with path</param>
+        public ImageScale(string inFile)
         {
-            FileStream fs = new FileStream(InFile, FileMode.Open, FileAccess.Read);
-            this.mySource = new Bitmap(fs);
+            CropX = -1;
+            CropY = -1;
+            var fs = new FileStream(inFile, FileMode.Open, FileAccess.Read);
+            this._mySource = new Bitmap(fs);
             fs.Close();
-            this._height = this.mySource.Height;
-            this._width = this.mySource.Width;
-            this._cropY = this._height;
-            this._cropX = this._width;
-            this.imageFormat = ParseImageFormat(Path.GetExtension(InFile));
+            PrepareBitmap(inFile);
         }
 
 
@@ -71,35 +78,29 @@ namespace Thumbnailer
         /// <param name="format">ex. ".jpg"</param>
         public ImageScale(Uri uri, string format)
         {
+            CropX = -1;
+            CropY = -1;
             WebRequest wr = WebRequest.Create(uri);
             try
             {
+                //async
                 HttpWebResponse response = (HttpWebResponse)wr.GetResponse();
 
                 Stream responseStream = response.GetResponseStream();
                 Stream s = CopyStream(responseStream);
-
-                this.mySource = new Bitmap(s);
-                this._height = this.mySource.Height;
-                this._width = this.mySource.Width;
-                this._cropY = this._height;
-                this._cropX = this._width;
-                this.imageFormat = ParseImageFormat(Path.GetExtension(format));
+                this._mySource = new Bitmap(s);
+                PrepareBitmap(format);
             }
             catch (WebException ex) //image could not be read, use a default one.
             {
+                LastError = "Image was not found";
                 HttpWebResponse webResponse = (HttpWebResponse)ex.Response;
                 if (webResponse.StatusCode == HttpStatusCode.NotFound)
                 {
-                    var InFile = HttpContext.Current.Request.PhysicalApplicationPath + "/white.gif";
-                    FileStream fs = new FileStream(InFile, FileMode.Open, FileAccess.Read);
-                    this.mySource = new Bitmap(fs);
-                    fs.Close();
-                    this._height = this.mySource.Height;
-                    this._width = this.mySource.Width;
-                    this._cropY = this._height;
-                    this._cropX = this._width;
-                    this.imageFormat = ParseImageFormat(Path.GetExtension(InFile));
+                    var inFile = HttpContext.Current.Request.PhysicalApplicationPath + "/white.gif";
+                    var fs = new FileStream(inFile, FileMode.Open, FileAccess.Read);
+                    this._mySource = new Bitmap(fs);
+                    PrepareBitmap(inFile);
                 }
             }
         }
@@ -110,16 +111,13 @@ namespace Thumbnailer
         /// <param name="uri">URI to website</param>
         /// <param name="w">image width</param>
         /// <param name="h">image height</param>
-        public ImageScale(Uri uri,int w, int h)
+        public ImageScale(Uri uri, int w, int h)
         {
+            CropX = -1;
+            CropY = -1;
             const string format = ".png";
-            mySource = BrowserImage.GetWebSiteThumbnail(uri.ToString(), 1024, 768, w, h);
-            this._height = this.mySource.Height;
-            this._width = this.mySource.Width;
-            this._cropY = this._height;
-            this._cropX = this._width;
-            this.imageFormat = ParseImageFormat(format);
-
+            _mySource = BrowserImage.GetWebSiteThumbnail(uri.ToString(), 1024, 768, w, h);
+            PrepareBitmap(format);
         }
 
         /// <summary>
@@ -129,13 +127,10 @@ namespace Thumbnailer
         /// <param name="format">ex. ".jpg"</param>
         public ImageScale(Stream stream, string format)
         {
-
-            mySource = new Bitmap(stream);
-            _height = this.mySource.Height;
-            _width = this.mySource.Width;
-            _cropY = this._height;
-            _cropX = this._width;
-            imageFormat = ParseImageFormat(Path.GetExtension(format));
+            CropX = -1;
+            CropY = -1;
+            _mySource = new Bitmap(stream);
+            PrepareBitmap(format);
         }
         /// <summary>
         /// Image width in pixels.
@@ -158,8 +153,8 @@ namespace Thumbnailer
                     _height = Convert.ToInt32(_height * (Convert.ToDouble(v) / Convert.ToDouble(_width))); 
                 }
                 _width = v;
-                _cropX = v;
-                _cropY = _height;
+                CropX = v;
+                CropY = _height;
             }
         }
         /// <summary>
@@ -184,39 +179,20 @@ namespace Thumbnailer
                 }
 
                 _height = v;
-                _cropY = v;
-                _cropX = _width;
+                CropY = v;
+                CropX = _width;
             }
         }
 
         /// <summary>
         /// Height to crop from 0
         /// </summary>
-        public int CropY
-        {
-            get
-            {
-                return _cropY;
-            }
-            set
-            {
-                _cropY = value;
-            }
-        }
+        public int CropY { get; set; }
+
         /// <summary>
         /// Width to crop from 0
         /// </summary>
-        public int CropX
-        {
-            get
-            {
-                return _cropX;
-            }
-            set
-            {
-                _cropX = value;
-            }
-        }
+        public int CropX { get; set; }
 
         /// <summary>
         /// Crop a bitmap
@@ -224,6 +200,7 @@ namespace Thumbnailer
         /// <param name="bitmap"></param>
         /// <param name="rect"></param>
         /// <returns></returns>
+        /// NOT IN USE
         private Bitmap CropBitmap(Bitmap bitmap, Rectangle rect)
         {
             return bitmap.Clone(rect, bitmap.PixelFormat);
@@ -237,19 +214,19 @@ namespace Thumbnailer
             MemoryStream stream = new MemoryStream();
             try
             {
-                Bitmap TargetBitmap = new Bitmap(this._cropX, this._cropY);
+                Bitmap TargetBitmap = new Bitmap(this.CropX, this.CropY);
                 TargetBitmap.MakeTransparent();
                 Graphics bmpGraphics = Graphics.FromImage(TargetBitmap);
                 // set Drawing Quality
                 bmpGraphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
                 bmpGraphics.SmoothingMode = SmoothingMode.AntiAlias;
-                mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
+                _mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
 
-                Rectangle compressionRectangle = cropRectangle.HasValue ? cropRectangle.Value : new Rectangle(0, 0, this._width, this._height);
+                Rectangle compressionRectangle = _cropRectangle.HasValue ? _cropRectangle.Value : new Rectangle(0, 0, this._width, this._height);
 
-                bmpGraphics.DrawImage(mySource, compressionRectangle);
-                this.mySource.Dispose();
-                TargetBitmap.Save(stream, imageFormat);
+                bmpGraphics.DrawImage(_mySource, compressionRectangle);
+                this._mySource.Dispose();
+                TargetBitmap.Save(stream, _imageFormat);
 
                 byte[] bmpBytes = stream.GetBuffer();
                 TargetBitmap.Dispose();
@@ -271,17 +248,17 @@ namespace Thumbnailer
             MemoryStream stream = new MemoryStream();
             try
             {
-                Bitmap TargetBitmap = new Bitmap(this._cropX, this._cropY);
+                Bitmap TargetBitmap = new Bitmap(this.CropX, this.CropY);
                 Graphics bmpGraphics = Graphics.FromImage(TargetBitmap);
                 // set Drawing Quality
                 bmpGraphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
                 bmpGraphics.SmoothingMode = SmoothingMode.AntiAlias;
-                mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
+                _mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
 
-                Rectangle compressionRectangle = cropRectangle.HasValue ? cropRectangle.Value : new Rectangle(0, 0, this._width, this._height);
-                bmpGraphics.DrawImage(mySource, compressionRectangle);
-                this.mySource.Dispose(); 
-                TargetBitmap.Save(stream, imageFormat);
+                Rectangle compressionRectangle = _cropRectangle.HasValue ? _cropRectangle.Value : new Rectangle(0, 0, this._width, this._height);
+                bmpGraphics.DrawImage(_mySource, compressionRectangle);
+                this._mySource.Dispose(); 
+                TargetBitmap.Save(stream, _imageFormat);
 
                 return stream;
             }
@@ -308,25 +285,25 @@ namespace Thumbnailer
 
             try
             {
-                Bitmap TargetBitmap = new Bitmap(this._cropX, this._cropY);
+                Bitmap TargetBitmap = new Bitmap(this.CropX, this.CropY);
                 TargetBitmap.MakeTransparent();
                 Graphics bmpGraphics = Graphics.FromImage(TargetBitmap);
                 // set Drawing Quality
                 bmpGraphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 bmpGraphics.SmoothingMode = SmoothingMode.AntiAlias;
-                mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
+                _mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
 
-                Rectangle compressionRectangle = cropRectangle.HasValue ? cropRectangle.Value : new Rectangle(0, 0, this._width, this._height);
-                bmpGraphics.DrawImage(mySource, compressionRectangle);
-                this.mySource.Dispose(); // release source bitmap.
+                Rectangle compressionRectangle = _cropRectangle.HasValue ? _cropRectangle.Value : new Rectangle(0, 0, this._width, this._height);
+                bmpGraphics.DrawImage(_mySource, compressionRectangle);
+                this._mySource.Dispose(); // release source bitmap.
 
-                if(imageFormat == ImageFormat.Jpeg)
+                if(_imageFormat == ImageFormat.Jpeg)
                 {
                     TargetBitmap.Save(stream, GetCodecInfo("jpeg"), destEncParams);
                 }
                 else
                 {
-                    TargetBitmap.Save(stream, imageFormat);
+                    TargetBitmap.Save(stream, _imageFormat);
                 }
                 TargetBitmap.Dispose();
             }
@@ -350,22 +327,22 @@ namespace Thumbnailer
             EncoderParameter qualityParam = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, quality);
             destEncParams.Param[0] = qualityParam;
 
-            Bitmap TargetBitmap = new Bitmap(this._cropX, this._cropY);//,System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            Bitmap TargetBitmap = new Bitmap(this.CropX, this.CropY);//,System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             Graphics bmpGraphics = Graphics.FromImage(TargetBitmap);
             // set Drawing Quality
             bmpGraphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
             bmpGraphics.SmoothingMode = SmoothingMode.AntiAlias;
-            mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
+            _mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
 
             Rectangle compressionRectangle = new Rectangle(0, 0, this._width, this._height);
-            bmpGraphics.DrawImage(mySource, compressionRectangle);
+            bmpGraphics.DrawImage(_mySource, compressionRectangle);
 
             //TODO: implement in all methods
-            if (cropRectangle.HasValue)
+            if (_cropRectangle.HasValue)
             {
-                Bitmap crop = new Bitmap(cropRectangle.Value.Width, cropRectangle.Value.Height);
+                Bitmap crop = new Bitmap(_cropRectangle.Value.Width, _cropRectangle.Value.Height);
                 Graphics gfx = Graphics.FromImage(crop);
-                gfx.DrawImage(TargetBitmap, new Rectangle(0, 0, cropRectangle.Value.Width, cropRectangle.Value.Height), cropRectangle.Value, GraphicsUnit.Pixel);
+                gfx.DrawImage(TargetBitmap, new Rectangle(0, 0, _cropRectangle.Value.Width, _cropRectangle.Value.Height), _cropRectangle.Value, GraphicsUnit.Pixel);
                 TargetBitmap.Dispose();
                 TargetBitmap = crop;
             }
@@ -375,13 +352,13 @@ namespace Thumbnailer
                 Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
             }
 
-            if(imageFormat == ImageFormat.Jpeg)
+            if(_imageFormat == ImageFormat.Jpeg)
             {
                 TargetBitmap.Save(fullPath, GetCodecInfo("jpeg"), destEncParams);
             }
             else
             {
-                TargetBitmap.Save(fullPath, imageFormat);
+                TargetBitmap.Save(fullPath, _imageFormat);
             }
 
             TargetBitmap.Dispose();
@@ -406,6 +383,9 @@ namespace Thumbnailer
         {
             switch (fmt.ToLower())
             {
+                case ".jpeg":
+                    return ImageFormat.Jpeg;
+                    break;
                 case ".jpg":
                     return ImageFormat.Jpeg;
                     break;
@@ -460,7 +440,7 @@ namespace Thumbnailer
 
         public void Dispose()
         {
-            this.mySource.Dispose(); // release source bitmap.
+            this._mySource.Dispose(); // release source bitmap.
         }
 
         /// <summary>
