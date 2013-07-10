@@ -32,6 +32,16 @@ THE SOFTWARE.
 
 namespace Thumbnailer
 {
+    public enum ImageFormat
+    {
+        Jpeg, 
+        Gif,
+        Png,
+        Bmp,
+        Tiff,
+        Emf
+    }
+
     /// <summary>
     /// Handles imgae manipulation
     /// </summary>
@@ -42,9 +52,40 @@ namespace Thumbnailer
         private int _height = -1;
         private int _width = -1;
         private readonly Bitmap _mySource;
-        private Rectangle? _cropRectangle = null;
         private ImageFormat _imageFormat = ImageFormat.Png;
-        public string LastError { get; set; } 
+        public string LastError { get; set; }
+        public MemoryStream BitmapStream { get; set; }
+        private InterpolationMode _interpolation { get; set; }
+        private short _bitmapQualityValue { get; set; }
+ 
+        private Bitmap _targetBitmap { get; set; }
+
+        private System.Drawing.Imaging.ImageFormat FmtConv(ImageFormat fmt)
+        {
+            switch (fmt)
+            {
+                case ImageFormat.Jpeg:
+                    return System.Drawing.Imaging.ImageFormat.Jpeg;
+                    break;
+                    case ImageFormat.Bmp:
+                    return System.Drawing.Imaging.ImageFormat.Bmp;
+                    break;
+                    case ImageFormat.Emf:
+                    return System.Drawing.Imaging.ImageFormat.Emf;
+                    break;
+                    case ImageFormat.Gif:
+                    return System.Drawing.Imaging.ImageFormat.Gif;
+                    break;
+                    case ImageFormat.Png:
+                    return System.Drawing.Imaging.ImageFormat.Png;
+                    break;
+                    case ImageFormat.Tiff:
+                    return System.Drawing.Imaging.ImageFormat.Tiff;
+                    break;
+                default:
+                    return System.Drawing.Imaging.ImageFormat.Png;
+            }
+        }
 
         private void PrepareBitmap(string inFile)
         {
@@ -53,6 +94,7 @@ namespace Thumbnailer
             this.CropY = this._height;
             this.CropX = this._width;
             this._imageFormat = ParseImageFormat(Path.GetExtension(inFile));
+            _interpolation = InterpolationMode.HighQualityBilinear;
         }
 
         /// <summary>
@@ -205,165 +247,47 @@ namespace Thumbnailer
         {
             return bitmap.Clone(rect, bitmap.PixelFormat);
         }
-        /// <summary>
-        /// Save image to byte array that is returned
-        /// </summary>
-        /// <returns></returns>
-        public byte[] SaveFile()
+
+        public MemoryStream Save(ImageFormat format,  int bitmapQuality = 50, Rectangle? cropRectangle = null)
         {
-            MemoryStream stream = new MemoryStream();
-            try
-            {
-                Bitmap TargetBitmap = new Bitmap(this.CropX, this.CropY);
-                TargetBitmap.MakeTransparent();
-                Graphics bmpGraphics = Graphics.FromImage(TargetBitmap);
+            BitmapStream = new MemoryStream();
+                _targetBitmap = new Bitmap(this.CropX, this.CropY);
+                _targetBitmap.MakeTransparent();
+                Graphics bmpGraphics = Graphics.FromImage(_targetBitmap);
                 // set Drawing Quality
-                bmpGraphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
+                bmpGraphics.InterpolationMode = _interpolation;
                 bmpGraphics.SmoothingMode = SmoothingMode.AntiAlias;
                 _mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
-
-                Rectangle compressionRectangle = _cropRectangle.HasValue ? _cropRectangle.Value : new Rectangle(0, 0, this._width, this._height);
-
+                Rectangle compressionRectangle = cropRectangle.HasValue ? cropRectangle.Value : new Rectangle(0, 0, this._width, this._height);
                 bmpGraphics.DrawImage(_mySource, compressionRectangle);
                 this._mySource.Dispose();
-                TargetBitmap.Save(stream, _imageFormat);
 
-                byte[] bmpBytes = stream.GetBuffer();
-                TargetBitmap.Dispose();
-                stream.Close();
-                return bmpBytes;
-            }
-            catch
-            {
-                throw new Exception("Could not scale image stream");
-            }
-        }
-        /// <summary>
-        /// Saves the file to a stream that is returned
-        /// </summary>
-        /// <param name="quality"></param>
-        /// <returns></returns>
-        public MemoryStream SaveFile(int quality)
-        {
-            MemoryStream stream = new MemoryStream();
-            try
-            {
-                Bitmap TargetBitmap = new Bitmap(this.CropX, this.CropY);
-                Graphics bmpGraphics = Graphics.FromImage(TargetBitmap);
-                // set Drawing Quality
-                bmpGraphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
-                bmpGraphics.SmoothingMode = SmoothingMode.AntiAlias;
-                _mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
-
-                Rectangle compressionRectangle = _cropRectangle.HasValue ? _cropRectangle.Value : new Rectangle(0, 0, this._width, this._height);
-                bmpGraphics.DrawImage(_mySource, compressionRectangle);
-                this._mySource.Dispose(); 
-                TargetBitmap.Save(stream, _imageFormat);
-
-                return stream;
-            }
-            catch
-            {
-                throw new Exception("Could not scale image stream");
-            }
-        }
-
-        /// <summary>
-        /// Save image to stream
-        /// </summary>
-        /// <param name="stream">ouput stream</param>
-        /// <param name="quality">jpeg quality</param>
-        public void SaveFile(Stream stream, int quality)
-        {
-            //Create an EncoderParameters collection to contain the
-            //parameters that control the dest format's encoder
-            EncoderParameters destEncParams = new EncoderParameters(1);
-
-            //Use quality parameter
-            EncoderParameter qualityParam = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, quality);
-            destEncParams.Param[0] = qualityParam;
-
-            try
-            {
-                Bitmap TargetBitmap = new Bitmap(this.CropX, this.CropY);
-                TargetBitmap.MakeTransparent();
-                Graphics bmpGraphics = Graphics.FromImage(TargetBitmap);
-                // set Drawing Quality
-                bmpGraphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                bmpGraphics.SmoothingMode = SmoothingMode.AntiAlias;
-                _mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
-
-                Rectangle compressionRectangle = _cropRectangle.HasValue ? _cropRectangle.Value : new Rectangle(0, 0, this._width, this._height);
-                bmpGraphics.DrawImage(_mySource, compressionRectangle);
-                this._mySource.Dispose(); // release source bitmap.
-
-                if(_imageFormat == ImageFormat.Jpeg)
+                if (format == ImageFormat.Jpeg)
                 {
-                    TargetBitmap.Save(stream, GetCodecInfo("jpeg"), destEncParams);
+                    var destEncParams = new EncoderParameters(1);
+                    var qualityParam = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, bitmapQuality);
+                    destEncParams.Param[0] = qualityParam;
+
+                    _targetBitmap.Save(BitmapStream, GetCodecInfo("jpeg"), destEncParams);
                 }
                 else
                 {
-                    TargetBitmap.Save(stream, _imageFormat);
+                    _targetBitmap.Save(BitmapStream, FmtConv(format));
                 }
-                TargetBitmap.Dispose();
-            }
-            catch(Exception)
-            {
-                throw new Exception("Could not scale image stream");
-            }
-        }
-        /// <summary>
-        /// Save Image to file with quality
-        /// </summary>
-        /// <param name="path">path and filename</param>
-        /// <param name="quality">The quality.</param>
-        public void SaveFile(string path, int quality)
-        {
-            //Create an EncoderParameters collection to contain the
-            //parameters that control the dest format's encoder
-            EncoderParameters destEncParams = new EncoderParameters(1);
-
-            //Use quality parameter
-            EncoderParameter qualityParam = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, quality);
-            destEncParams.Param[0] = qualityParam;
-
-            Bitmap TargetBitmap = new Bitmap(this.CropX, this.CropY);//,System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            Graphics bmpGraphics = Graphics.FromImage(TargetBitmap);
-            // set Drawing Quality
-            bmpGraphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
-            bmpGraphics.SmoothingMode = SmoothingMode.AntiAlias;
-            _mySource.RotateFlip(RotateFlipType.RotateNoneFlipNone);
-
-            Rectangle compressionRectangle = new Rectangle(0, 0, this._width, this._height);
-            bmpGraphics.DrawImage(_mySource, compressionRectangle);
-
-            //TODO: implement in all methods
-            if (_cropRectangle.HasValue)
-            {
-                Bitmap crop = new Bitmap(_cropRectangle.Value.Width, _cropRectangle.Value.Height);
-                Graphics gfx = Graphics.FromImage(crop);
-                gfx.DrawImage(TargetBitmap, new Rectangle(0, 0, _cropRectangle.Value.Width, _cropRectangle.Value.Height), _cropRectangle.Value, GraphicsUnit.Pixel);
-                TargetBitmap.Dispose();
-                TargetBitmap = crop;
-            }
-            string fullPath = path;
-            if (!Directory.Exists(Path.GetDirectoryName(fullPath)))
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
-            }
-
-            if(_imageFormat == ImageFormat.Jpeg)
-            {
-                TargetBitmap.Save(fullPath, GetCodecInfo("jpeg"), destEncParams);
-            }
-            else
-            {
-                TargetBitmap.Save(fullPath, _imageFormat);
-            }
-
-            TargetBitmap.Dispose();
+                _targetBitmap.Dispose();
+            return BitmapStream;
         }
 
+         public void Save(string filePath, ImageFormat format, int bitmapQuality = 50, Rectangle? cropRectangle = null)
+         {
+             var stream = Save(format, bitmapQuality, cropRectangle);
+             using (var fileStream = File.Create(filePath))
+             {
+                 stream.CopyToAsync(fileStream);
+             }
+         }
+       
+      
         /// <summary>
         /// get codec
         /// </summary>

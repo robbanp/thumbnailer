@@ -54,9 +54,8 @@ namespace WebApplication1
                 var s = new MemoryStream();
                 scale.Height = int.Parse(h);
                 scale.Width = int.Parse(w);
-                scale.SaveFile(s, 100);
                 Response.Clear();
-                buffer = s.ToArray();
+                buffer = scale.Save(ImageFormat.Png).ToArray(); //s.ToArray());
                 Cache.Insert(key, buffer, null, DateTime.Now.AddHours(24), Cache.NoSlidingExpiration); // add image to cache for 24 hrs
             }
             else
