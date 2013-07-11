@@ -101,6 +101,7 @@ namespace Thumbnailer
 
         public Bitmap GenerateWebSiteThumbnailImage()
         {
+            //Async
             var mThread = new Thread(_GenerateWebSiteThumbnailImage);
             mThread.SetApartmentState(ApartmentState.STA);
             mThread.Start();

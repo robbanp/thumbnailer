@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using System.Web;
 
 
@@ -45,13 +46,13 @@ namespace Thumbnailer
     /// <summary>
     /// Handles imgae manipulation
     /// </summary>
-    public class ImageScale
+    public class GetWebSite
     {
         public bool ConstrainPorportions = true;
 
         private int _height = -1;
         private int _width = -1;
-        private readonly Bitmap _mySource;
+        internal Bitmap _mySource;
         private ImageFormat _imageFormat = ImageFormat.Png;
         public string LastError { get; set; }
         public MemoryStream BitmapStream { get; set; }
@@ -86,14 +87,16 @@ namespace Thumbnailer
                     return System.Drawing.Imaging.ImageFormat.Png;
             }
         }
-
-        private void PrepareBitmap(string inFile)
+        public GetWebSite()
+        {
+            
+        }
+        private void PrepareBitmap()
         {
             this._height = this._mySource.Height;
             this._width = this._mySource.Width;
             this.CropY = this._height;
             this.CropX = this._width;
-            this._imageFormat = ParseImageFormat(Path.GetExtension(inFile));
             _interpolation = InterpolationMode.HighQualityBilinear;
         }
 
@@ -101,14 +104,15 @@ namespace Thumbnailer
         /// Open a local file
         /// </summary>
         /// <param name="inFile">file with path</param>
-        public ImageScale(string inFile)
+        public GetWebSite(string inFile)
         {
+            //Async
             CropX = -1;
             CropY = -1;
             var fs = new FileStream(inFile, FileMode.Open, FileAccess.Read);
             this._mySource = new Bitmap(fs);
             fs.Close();
-            PrepareBitmap(inFile);
+            PrepareBitmap();
         }
 
 
@@ -118,33 +122,45 @@ namespace Thumbnailer
         /// </summary>
         /// <param name="uri">URI to image</param>
         /// <param name="format">ex. ".jpg"</param>
-        public ImageScale(Uri uri, string format)
+        public static async Task<GetWebSite> GetWebImageAsync(Uri uri)
         {
-            CropX = -1;
-            CropY = -1;
+            var img = new GetWebSite();
             WebRequest wr = WebRequest.Create(uri);
+            var stream = new MemoryStream();
+            var success = true;
             try
             {
-                //async
-                HttpWebResponse response = (HttpWebResponse)wr.GetResponse();
-
-                Stream responseStream = response.GetResponseStream();
-                Stream s = CopyStream(responseStream);
-                this._mySource = new Bitmap(s);
-                PrepareBitmap(format);
+                using (WebResponse response = await wr.GetResponseAsync())
+                {
+                    using (Stream responseStream = response.GetResponseStream())
+                    {
+                        await responseStream.CopyToAsync(stream);
+                    }
+                }
+                img.CropX = -1;
+                img.CropY = -1;
+                img._mySource = new Bitmap(stream);
+                img.PrepareBitmap();
+                return img;
             }
             catch (WebException ex) //image could not be read, use a default one.
             {
-                LastError = "Image was not found";
-                HttpWebResponse webResponse = (HttpWebResponse)ex.Response;
-                if (webResponse.StatusCode == HttpStatusCode.NotFound)
-                {
-                    var inFile = HttpContext.Current.Request.PhysicalApplicationPath + "/white.gif";
-                    var fs = new FileStream(inFile, FileMode.Open, FileAccess.Read);
-                    this._mySource = new Bitmap(fs);
-                    PrepareBitmap(inFile);
-                }
+                success = false;
             }
+
+            if (!success)
+            {
+                img.LastError = "Image was not found";
+                    var inFile = HttpContext.Current.Request.PhysicalApplicationPath + "/white.gif";
+
+                    using (FileStream SourceStream = File.Open(inFile, FileMode.Open))
+                    {
+                        await SourceStream.CopyToAsync(stream);
+                    }
+                    img._mySource = new Bitmap(stream);
+                    img.PrepareBitmap();
+            }
+            return img;
         }
 
         /// <summary>
@@ -153,13 +169,13 @@ namespace Thumbnailer
         /// <param name="uri">URI to website</param>
         /// <param name="w">image width</param>
         /// <param name="h">image height</param>
-        public ImageScale(Uri uri, int w, int h)
+        public GetWebSite(Uri uri, int w, int h)
         {
             CropX = -1;
             CropY = -1;
             const string format = ".png";
             _mySource = BrowserImage.GetWebSiteThumbnail(uri.ToString(), 1024, 768, w, h);
-            PrepareBitmap(format);
+            PrepareBitmap();
         }
 
         /// <summary>
@@ -167,12 +183,12 @@ namespace Thumbnailer
         /// </summary>
         /// <param name="stream">input stream containing the image data</param>
         /// <param name="format">ex. ".jpg"</param>
-        public ImageScale(Stream stream, string format)
+        public GetWebSite(Stream stream)
         {
             CropX = -1;
             CropY = -1;
             _mySource = new Bitmap(stream);
-            PrepareBitmap(format);
+            PrepareBitmap();
         }
         /// <summary>
         /// Image width in pixels.
@@ -236,18 +252,7 @@ namespace Thumbnailer
         /// </summary>
         public int CropX { get; set; }
 
-        /// <summary>
-        /// Crop a bitmap
-        /// </summary>
-        /// <param name="bitmap"></param>
-        /// <param name="rect"></param>
-        /// <returns></returns>
-        /// NOT IN USE
-        private Bitmap CropBitmap(Bitmap bitmap, Rectangle rect)
-        {
-            return bitmap.Clone(rect, bitmap.PixelFormat);
-        }
-
+ 
         public MemoryStream Save(ImageFormat format,  int bitmapQuality = 50, Rectangle? cropRectangle = null)
         {
             BitmapStream = new MemoryStream();
@@ -278,12 +283,21 @@ namespace Thumbnailer
             return BitmapStream;
         }
 
+         public async void SaveAsync(string filePath, ImageFormat format, int bitmapQuality = 50, Rectangle? cropRectangle = null)
+         {
+             var stream = Save(format, bitmapQuality, cropRectangle);
+             using (var fileStream = File.Create(filePath))
+             {
+                 await stream.CopyToAsync(fileStream);
+             }
+         }
+
          public void Save(string filePath, ImageFormat format, int bitmapQuality = 50, Rectangle? cropRectangle = null)
          {
              var stream = Save(format, bitmapQuality, cropRectangle);
              using (var fileStream = File.Create(filePath))
              {
-                 stream.CopyToAsync(fileStream);
+                  stream.CopyToAsync(fileStream);
              }
          }
        
@@ -365,27 +379,8 @@ namespace Thumbnailer
         public void Dispose()
         {
             this._mySource.Dispose(); // release source bitmap.
+            _targetBitmap.Dispose();
         }
 
-        /// <summary>
-        /// Copy a stream
-        /// </summary>
-        /// <param name="inputStream"></param>
-        /// <returns></returns>
-        private static Stream CopyStream(Stream inputStream)
-        {
-            const int readSize = 256;
-            byte[] buffer = new byte[readSize];
-            MemoryStream ms = new MemoryStream();
-
-            int count = inputStream.Read(buffer, 0, readSize);
-            while (count > 0)
-            {
-                ms.Write(buffer, 0, count);
-                count = inputStream.Read(buffer, 0, readSize);
-            }
-            ms.Seek(0, SeekOrigin.Begin);
-            return ms;
-        }
     }
 }
