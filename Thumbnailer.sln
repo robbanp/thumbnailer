@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thumbnailer", "ImgScale\Thumbnailer.csproj", "{9CEACBE2-F65B-45FC-BCF7-B86445923BF6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApplication1", "WebApplication1\WebApplication1.csproj", "{1CB1BCBC-9E2C-4383-932B-5953B27C111C}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MvcApplication1", "MvcApplication1\MvcApplication1.csproj", "{4F86D5CB-54EA-470E-AB00-E25B1CF2D048}"
 EndProject
 Global
@@ -21,10 +19,6 @@ Global
 		{9CEACBE2-F65B-45FC-BCF7-B86445923BF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9CEACBE2-F65B-45FC-BCF7-B86445923BF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9CEACBE2-F65B-45FC-BCF7-B86445923BF6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1CB1BCBC-9E2C-4383-932B-5953B27C111C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1CB1BCBC-9E2C-4383-932B-5953B27C111C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1CB1BCBC-9E2C-4383-932B-5953B27C111C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1CB1BCBC-9E2C-4383-932B-5953B27C111C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4F86D5CB-54EA-470E-AB00-E25B1CF2D048}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4F86D5CB-54EA-470E-AB00-E25B1CF2D048}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4F86D5CB-54EA-470E-AB00-E25B1CF2D048}.Release|Any CPU.ActiveCfg = Release|Any CPU

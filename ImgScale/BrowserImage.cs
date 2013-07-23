@@ -31,10 +31,10 @@ namespace Thumbnailer
     public class BrowserImage
     {
         public static Bitmap GetWebSiteThumbnail(string Url, int BrowserWidth, int BrowserHeight, int ThumbnailWidth,
-                                                 int ThumbnailHeight)
+            int ThumbnailHeight)
         {
             var thumbnailGenerator = new WebsiteThumbnailImage(Url, BrowserWidth, BrowserHeight, ThumbnailWidth,
-                                                               ThumbnailHeight);
+                ThumbnailHeight);
             return thumbnailGenerator.GenerateWebSiteThumbnailImage();
         }
     }
@@ -50,7 +50,7 @@ namespace Thumbnailer
         private string _mUrl;
 
         public WebsiteThumbnailImage(string Url, int BrowserWidth, int BrowserHeight, int ThumbnailWidth,
-                                     int ThumbnailHeight)
+            int ThumbnailHeight)
         {
             isDone = false;
             _mUrl = Url;
@@ -124,6 +124,7 @@ namespace Thumbnailer
                 mWebBrowser.ScrollBarsEnabled = false;
                 mWebBrowser.Navigate(_mUrl);
                 mWebBrowser.ScriptErrorsSuppressed = true;
+                mWebBrowser.Visible = false;
                 mWebBrowser.Height = BrowserHeight;
                 mWebBrowser.Width = BrowserWidth;
                 mWebBrowser.NewWindow += webBrowser1_NewWindow;
@@ -162,7 +163,9 @@ namespace Thumbnailer
 
             var bitmap = new Bitmap(_mBrowserWidth, _mBrowserHeight);
             var bitmapRect = new Rectangle(0, 0, _mBrowserWidth, _mBrowserHeight);
+//            webBrowser.Visible = true;
             webBrowser.DrawToBitmap(bitmap, bitmapRect);
+            webBrowser.Visible = false;
             _mBitmap = bitmap;
         }
     }
